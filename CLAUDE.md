@@ -168,12 +168,19 @@ Set these in GitHub → Settings → Secrets and variables → Actions:
 
 ## Deployment
 
-Deployment is automatic via GitHub Actions (`.github/workflows/deploy.yml`):
+Cloudflare Pages is linked directly to the GitHub repo and handles all deployments automatically:
 
-- Push to `dev` → preview deployment
-- Push to `main` → production (`sprint.petesimon.com`)
+- Push to `dev` → Cloudflare builds and deploys to a preview URL
+- Push to `main` → Cloudflare builds and deploys to `sprint.petesimon.com`
 
-Manual deploy: `npm run build:cf && npx wrangler pages deploy .vercel/output/static`
+GitHub Actions (`.github/workflows/deploy.yml`) runs lint and typecheck on every push/PR to catch errors *before* Cloudflare's build starts — it does not deploy.
+
+**Cloudflare build settings** (set once in the Cloudflare Pages dashboard):
+- Build command: `npx @cloudflare/next-on-pages`
+- Build output directory: `.vercel/output/static`
+- Node.js version: `22`
+
+Manual deploy (local): `npm run build:cf && npx wrangler pages deploy .vercel/output/static`
 
 ---
 
