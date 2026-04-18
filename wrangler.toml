@@ -1,0 +1,19 @@
+name = "sprint"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+# D1 Database — Sprint's main data store
+# Create it with: npx wrangler d1 create sprint-db
+# Then paste the database_id below
+[[d1_databases]]
+binding = "DB"
+database_name = "sprint-db"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# KV Namespace — used for session storage
+# Create it with: npx wrangler kv namespace create SESSIONS
+# Then paste the id below
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"

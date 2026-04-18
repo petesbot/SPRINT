@@ -5,103 +5,233 @@ This file provides guidance for AI assistants (Claude Code and similar tools) wo
 ## Repository Overview
 
 **Repository:** `petesbot/SPRINT`
-**Status:** Freshly initialized — no application code exists yet. Update this file as the codebase grows.
+**Product:** Sprint — an AI-powered fitness coaching app
+**Live URL:** `sprint.petesimon.com` (Cloudflare Pages)
+**Stack:** Next.js 16 · TypeScript · Tailwind CSS 4 · Cloudflare Pages/Workers/D1 · Clerk Auth · Claude API
+
+---
+
+## Project Structure
+
+```
+/
+├── src/
+│   ├── app/                    # Next.js App Router — one folder = one URL
+│   │   ├── (auth)/             # Auth routes (grouped, no URL segment)
+│   │   │   ├── login/
+│   │   │   └── signup/
+│   │   ├── dashboard/          # Main app shell after login
+│   │   ├── workouts/           # Workout session pages
+│   │   ├── calendar/           # Schedule calendar view
+│   │   ├── onboarding/         # New user onboarding flow
+│   │   ├── profile/            # User profile/settings
+│   │   ├── layout.tsx          # Root layout (wraps every page)
+│   │   └── page.tsx            # Landing page (sprint.petesimon.com)
+│   ├── components/
+│   │   ├── ui/                 # Reusable primitives (Button, Card, Input…)
+│   │   ├── workout/            # Workout-specific components
+│   │   ├── calendar/           # Calendar/scheduling components
+│   │   └── layout/             # Nav, sidebar, header components
+│   ├── lib/
+│   │   ├── db/                 # Drizzle ORM schema and query helpers
+│   │   └── ai/                 # Claude API integration for coaching logic
+│   ├── hooks/                  # Custom React hooks
+│   └── types/                  # Shared TypeScript types
+├── .github/workflows/
+│   └── deploy.yml              # CI/CD — auto-deploys on push to main/dev
+├── wrangler.toml               # Cloudflare project config (D1, KV bindings)
+├── .env.example                # Required environment variables (safe template)
+└── next.config.ts              # Next.js + Cloudflare Pages adapter config
+```
+
+---
+
+## Tech Stack
+
+| Concern | Tool | Notes |
+|---|---|---|
+| Framework | Next.js 16 (App Router) | `src/app/` directory |
+| Language | TypeScript (strict) | All files `.ts` or `.tsx` |
+| Styling | Tailwind CSS v4 | Utility-first, mobile-first |
+| Hosting | Cloudflare Pages | Edge-deployed globally |
+| API layer | Cloudflare Workers (via Next.js edge routes) | `export const runtime = "edge"` on every route |
+| Database | Cloudflare D1 + Drizzle ORM | SQLite-compatible, edge-native |
+| Auth | Clerk | Login, signup, session management |
+| AI coaching | Anthropic Claude API | Adaptive workout suggestions |
+| Storage | Cloudflare R2 | Exercise video assets |
 
 ---
 
 ## Development Branch Convention
 
-Always develop on feature branches. The default integration branch is `main`.
-
-```bash
-# Create a new feature branch
-git checkout -b <type>/<short-description>
-
-# Push and track remote
-git push -u origin <branch-name>
+```
+main    ← production (sprint.petesimon.com) — protected
+dev     ← staging/integration — preview URL
+feat/*  ← feature branches — merge into dev via PR
+fix/*   ← bug fix branches
 ```
 
-Branch naming: `<type>/<kebab-case-description>` — e.g. `feat/user-auth`, `fix/login-crash`, `chore/update-deps`.
+Always branch from `dev`, not `main`:
+
+```bash
+git checkout dev && git pull origin dev
+git checkout -b feat/your-feature-name
+```
 
 ---
 
 ## Commit Message Convention
 
-Use the Conventional Commits format:
+Conventional Commits format:
 
 ```
-<type>(<optional scope>): <short imperative summary>
-
-<optional body explaining WHY, not WHAT>
+<type>(<scope>): <short summary>
 ```
 
-Common types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`.
-
-- Subject line ≤ 72 characters, lowercase after the type prefix.
-- Body only when the "why" is non-obvious.
-- No trailing period on the subject line.
+Types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`, `ci`
+- Subject ≤ 72 chars, lowercase after the type prefix
+- No trailing period
 
 ---
 
-## Git Workflow
+## Local Development
 
-1. Branch from `main` for every change.
-2. Commit atomically — one logical change per commit.
-3. Push with `git push -u origin <branch-name>`.
-4. Open a pull request against `main`; do not push directly to `main`.
-5. Never force-push to `main`.
+### Prerequisites
+- Node.js 22+
+- A Cloudflare account (free tier works)
+- A Clerk account (free tier works)
+- An Anthropic API key
+
+### Setup
+
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Copy env template and fill in your keys
+cp .env.example .env.local
+
+# 3. Run the dev server
+npm run dev
+# → http://localhost:3000
+
+# 4. To test with real Cloudflare bindings locally
+npm run preview:cf
+```
+
+### Useful Scripts
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Next.js dev server (fast, hot reload) |
+| `npm run build` | Standard Next.js production build |
+| `npm run build:cf` | Build for Cloudflare Pages specifically |
+| `npm run preview:cf` | Build + run locally with Wrangler (simulates Cloudflare) |
+| `npm run typecheck` | TypeScript type check without building |
+| `npm run lint` | ESLint check |
+
+---
+
+## Cloudflare Setup (one-time)
+
+```bash
+# Log in to Cloudflare
+npx wrangler login
+
+# Create the D1 database
+npx wrangler d1 create sprint-db
+# → paste the database_id into wrangler.toml
+
+# Create KV namespace for sessions
+npx wrangler kv namespace create SESSIONS
+# → paste the id into wrangler.toml
+
+# Create Pages project
+npx wrangler pages project create sprint
+```
+
+---
+
+## GitHub Secrets Required
+
+Set these in GitHub → Settings → Secrets and variables → Actions:
+
+| Secret | Where to get it |
+|---|---|
+| `CLOUDFLARE_API_TOKEN` | Cloudflare dashboard → My Profile → API Tokens |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare dashboard → right sidebar |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk dashboard → API Keys |
+| `CLERK_SECRET_KEY` | Clerk dashboard → API Keys |
+| `ANTHROPIC_API_KEY` | console.anthropic.com |
+
+---
+
+## Deployment
+
+Deployment is automatic via GitHub Actions (`.github/workflows/deploy.yml`):
+
+- Push to `dev` → preview deployment
+- Push to `main` → production (`sprint.petesimon.com`)
+
+Manual deploy: `npm run build:cf && npx wrangler pages deploy .vercel/output/static`
+
+---
+
+## Cloudflare DNS Setup
+
+In your Cloudflare dashboard for `petesimon.com`:
+1. Add CNAME record: `sprint` → `sprint.pages.dev`
+2. Cloudflare Pages → Custom Domains → Add `sprint.petesimon.com`
+
+---
+
+## Every Route Must Export the Edge Runtime
+
+Because we're on Cloudflare Workers (not Node.js), every page and API route needs:
+
+```ts
+export const runtime = "edge";
+```
+
+Without this, the build will fail on deployment.
 
 ---
 
 ## General Coding Conventions
 
-These apply regardless of the language/framework chosen as the project grows:
-
-- **No speculative code.** Don't add abstractions, helpers, or error-handling paths that aren't required by the current task.
-- **No comments that restate the code.** Only comment when the *why* is non-obvious (hidden constraints, surprising behaviour, workarounds for specific bugs).
-- **Validate only at system boundaries** (user input, external APIs). Trust internal function contracts and framework guarantees.
-- **Prefer editing existing files** to creating new ones. Delete dead code rather than commenting it out.
+- **No speculative code.** Don't add abstractions that the current task doesn't require.
+- **No comments that restate the code.** Comment only when the *why* is non-obvious.
+- **Validate only at system boundaries** (user input, external APIs).
+- **Prefer editing existing files** to creating new ones.
 - **No backwards-compat shims** unless explicitly required.
 
 ---
 
 ## Security Practices
 
-- Never commit secrets, credentials, `.env` files, or API keys.
-- Validate and sanitize all user-supplied input at system boundaries.
-- Avoid introducing OWASP Top 10 vulnerabilities (SQLi, XSS, command injection, etc.).
-- Use environment variables for configuration; provide a `.env.example` with placeholder values.
-
----
-
-## Pull Requests
-
-- Only create a PR when explicitly asked.
-- PR title: short (≤ 70 chars), imperative, matches the commit convention.
-- PR body should include a summary, test plan, and any relevant context.
+- Never commit `.env.local` or any file with real secrets.
+- All user input validated at the API boundary before touching the database.
+- Authentication enforced via Clerk middleware on all `/dashboard`, `/workouts`, `/calendar`, `/profile` routes.
 
 ---
 
 ## AI Assistant Instructions
 
-- Read this file at the start of every session to orient yourself.
-- Update this file when codebase structure, tooling, or conventions change.
-- Do not push to `main` directly — always use a feature branch.
+- Read this file at the start of every session.
+- All development on `feat/*` branches — never commit directly to `main` or `dev`.
+- Every new page/route file must include `export const runtime = "edge"`.
+- Update this file whenever the stack, structure, or conventions change.
 - Do not open a PR unless the user explicitly requests it.
-- Prefer small, reversible changes; confirm before destructive operations.
-- When the project gains a language/framework/test runner, add a dedicated section below.
+- Confirm before any destructive operation.
 
 ---
 
-## Project-Specific Sections (add as the project grows)
+## Roadmap
 
-Once the stack is chosen, add sections covering:
-
-- **Tech Stack** — languages, frameworks, key libraries and their versions.
-- **Project Structure** — directory layout and what lives where.
-- **Local Setup** — prerequisites and `getting started` steps.
-- **Running Tests** — how to run the test suite and what the CI gate requires.
-- **Linting & Formatting** — tools used and how to run them.
-- **Database / Migrations** — schema management workflow.
-- **Environment Variables** — list of required vars and where to set them.
-- **Deployment** — how to deploy and which environments exist.
+| Phase | Focus | Status |
+|---|---|---|
+| 0 | Foundation — Next.js scaffold, Cloudflare config, CI/CD | ✅ Done |
+| 1 | Auth — Clerk login/signup, onboarding flow, athlete profile | 🔜 Next |
+| 2 | Workout engine — templates, session logging, Claude AI suggestions | Planned |
+| 3 | Calendar — drag-and-drop scheduling, recovery-aware reshuffling | Planned |
+| 4 | Progress & polish — charts, wearable integrations, notifications | Planned |
